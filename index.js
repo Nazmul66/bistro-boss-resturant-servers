@@ -23,6 +23,7 @@ const client = new MongoClient(uri, {
   }
 });
 
+// Note: if you are using verify token your backend url network should be unauthorized for jwt token for secure site
 
   const verifyToken = (req, res, next) =>{
         const authorized = req.headers.authorization;
@@ -240,13 +241,84 @@ async function run() {
       // Store payment data POST
       app.post("/payments", verifyToken, async(req, res) =>{
           const payment = req.body;
-          console.log(payment)
+          payment.menuItems = payment.menuItems.map(item => new ObjectId(item))
+          // console.log(payment)
           const insertResult = await paymentCollection.insertOne(payment)
 
           const query = { _id: { $in: payment.cartItems.map(item => new ObjectId(item)) } }
+          // console.log(query)
           const deleteResult = await cartCollection.deleteMany(query)
 
           res.send({ insertResult, deleteResult })
+      })
+
+
+      // admin states GET
+      app.get("/admin-stats", verifyToken, verifyAdmin, async(req, res) =>{
+         const users = await userCollection.estimatedDocumentCount();
+         const products = await menuCollection.estimatedDocumentCount();
+         const orders = await paymentCollection.estimatedDocumentCount();
+
+         const payments = await paymentCollection.find().toArray();
+        //  console.log("hello there",payments)
+         const revenue = payments.reduce((sum, payment) => sum + payment.price , 0);
+         const total = revenue.toFixed(2)
+
+         res.send({
+            users,
+            products,
+            orders,
+            revenue: total
+         })
+      })
+
+      // order states GET
+      app.get("/order-stats", async(req, res) =>{
+        const pipeline = [
+          {
+            $lookup: {
+              from: "category",
+              localField: "menuItems",
+              foreignField: "_id",
+              as: "menuItemsData"
+            }
+          },
+          {
+            $unwind: '$menuItemsData'
+          },
+          {
+            $group: {
+              _id: '$menuItemsData.category',
+              count: { $sum: 1 },
+              total: { $sum: '$menuItemsData.price' }
+            }
+          },
+          {
+            $project: {
+              category: '$_id',
+              count: 1,
+              total: { $round: ['$total', 2] },
+              _id: 0
+            }
+          }
+        ];
+  
+        const result = await paymentCollection.aggregate(pipeline).toArray()
+        console.log(result)
+        res.send(result)
+
+          // // Note: bangla system work
+          // const paymentData = await paymentCollection.find().toArray();
+          // // console.log("joy bangla", paymentData)
+
+          // const orderId = paymentData.map(item => item.menuItems )
+          // const map = { _id: orderId[0].map(p => new ObjectId(p)) }
+          // // console.log("joy bangla", map)
+
+          // const query = await menuCollection.find(map).toArray()
+          // console.log(query)
+
+          // res.send(paymentData)  
       })
 
 
