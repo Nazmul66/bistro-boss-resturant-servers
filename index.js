@@ -11,8 +11,7 @@ app.use(express.json());
 app.use(cors());
 
 
-const uri = `mongodb+srv://${process.env.DB_user}:${process.env.DB_password}@cluster0.rnkzyeb.mongodb.net/?retryWrites=true&w=majority`;
-// `mongodb://${process.env.DB_user}:${process.env.DB_password}@ac-tfmdlv0-shard-00-00.rnkzyeb.mongodb.net:27017,ac-tfmdlv0-shard-00-01.rnkzyeb.mongodb.net:27017,ac-tfmdlv0-shard-00-02.rnkzyeb.mongodb.net:27017/?ssl=true&replicaSet=atlas-8cmvoo-shard-0&authSource=admin&retryWrites=true&w=majority`
+const uri = `mongodb://${process.env.DB_user}:${process.env.DB_password}@ac-tfmdlv0-shard-00-00.rnkzyeb.mongodb.net:27017,ac-tfmdlv0-shard-00-01.rnkzyeb.mongodb.net:27017,ac-tfmdlv0-shard-00-02.rnkzyeb.mongodb.net:27017/?ssl=true&replicaSet=atlas-8cmvoo-shard-0&authSource=admin&retryWrites=true&w=majority`
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -41,15 +40,10 @@ const client = new MongoClient(uri, {
   } 
 
 
-  const dbConnect = async () => {
-    try {
-      client.connect();
-      console.log("Database Connected Successfully✅");
-    } catch (error) {
-      console.log(error.name, error.message);
-    }
-  };
-  dbConnect();
+async function run() {
+  try {
+    // Connect the client to the server	(optional starting in v4.7)
+    // await client.connect();
 
     const menuCollection = client.db("restaurant").collection("category");
     const reviewCollection = client.db("restaurant").collection("reviews");
@@ -310,16 +304,24 @@ const client = new MongoClient(uri, {
   
         const result = await paymentCollection.aggregate(pipeline).toArray()
         console.log(result)
-        res.send(result)  
+        res.send(result)
+  
       })
+
+
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    // await client.close();
+  }
+}
+run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
-})
-
-app.get('/mashmelow', (req, res) => {
-  res.send('Hello World 2 3 1!')
 })
 
 app.listen(port, () => {
