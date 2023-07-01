@@ -1,10 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
-require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const stripe = require("stripe")(process.env.DB_SECRET_KEY)
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-// const bodyParser = require('body-parser');
 const cors = require('cors');
 const port = process.env.PORT || 4000;
 
@@ -12,7 +11,8 @@ app.use(express.json());
 app.use(cors());
 
 
-const uri = `mongodb://${process.env.DB_user}:${process.env.DB_password}@ac-tfmdlv0-shard-00-00.rnkzyeb.mongodb.net:27017,ac-tfmdlv0-shard-00-01.rnkzyeb.mongodb.net:27017,ac-tfmdlv0-shard-00-02.rnkzyeb.mongodb.net:27017/?ssl=true&replicaSet=atlas-8cmvoo-shard-0&authSource=admin&retryWrites=true&w=majority`
+const uri = `mongodb+srv://${process.env.DB_user}:${process.env.DB_password}@cluster0.rnkzyeb.mongodb.net/?retryWrites=true&w=majority`;
+// `mongodb://${process.env.DB_user}:${process.env.DB_password}@ac-tfmdlv0-shard-00-00.rnkzyeb.mongodb.net:27017,ac-tfmdlv0-shard-00-01.rnkzyeb.mongodb.net:27017,ac-tfmdlv0-shard-00-02.rnkzyeb.mongodb.net:27017/?ssl=true&replicaSet=atlas-8cmvoo-shard-0&authSource=admin&retryWrites=true&w=majority`
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -41,10 +41,15 @@ const client = new MongoClient(uri, {
   } 
 
 
-async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+  const dbConnect = async () => {
+    try {
+      client.connect();
+      console.log("Database Connected Successfully✅");
+    } catch (error) {
+      console.log(error.name, error.message);
+    }
+  };
+  dbConnect();
 
     const menuCollection = client.db("restaurant").collection("category");
     const reviewCollection = client.db("restaurant").collection("reviews");
@@ -305,32 +310,8 @@ async function run() {
   
         const result = await paymentCollection.aggregate(pipeline).toArray()
         console.log(result)
-        res.send(result)
-
-          // // Note: bangla system work
-          // const paymentData = await paymentCollection.find().toArray();
-          // // console.log("joy bangla", paymentData)
-
-          // const orderId = paymentData.map(item => item.menuItems )
-          // const map = { _id: orderId[0].map(p => new ObjectId(p)) }
-          // // console.log("joy bangla", map)
-
-          // const query = await menuCollection.find(map).toArray()
-          // console.log(query)
-
-          // res.send(paymentData)  
+        res.send(result)  
       })
-
-
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
-}
-run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
